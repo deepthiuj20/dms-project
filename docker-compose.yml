@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,dynamodb,cognito-idp,lambda,apigateway,logs
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "./localstack:/docker-entrypoint-initaws.d"
+      - "${TMPDIR}:/tmp/localstack"
+    networks:
+      - dms-network
+
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    ports:
+      - "8001:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://localstack:4566
+    depends_on:
+      - localstack
+    networks:
+      - dms-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DYNAMODB_DOCUMENTS_TABLE=dms_documents
+      - DYNAMODB_VERSIONS_TABLE=dms_versions
+      - DYNAMODB_AUDIT_LOG_TABLE=dms_audit_logs
+      - S3_BUCKET_NAME=dms-documents
+      - COGNITO_USER_POOL_ID=us-east-1_test
+      - COGNITO_CLIENT_ID=test
+      - ENVIRONMENT=development
+      - DEBUG=true
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - localstack
+    networks:
+      - dms-network
+
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && ng serve --host 0.0.0.0"
+    environment:
+      - NG_CLI_ANALYTICS=false
+    depends_on:
+      - backend
+    networks:
+      - dms-network
+
+networks:
+  dms-network:
+    driver: bridge
