@@ -1,0 +1,26 @@
+# Package Configuration
+
+{
+  "name": "dms-project",
+  "version": "1.0.0",
+  "description": "Production-Ready Document Management System",
+  "scripts": {
+    "backend:install": "cd backend && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt",
+    "backend:dev": "cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "backend:test": "cd backend && pytest -v --cov=app tests/",
+    "backend:lint": "cd backend && pylint app/",
+    "frontend:install": "cd frontend && npm install",
+    "frontend:dev": "cd frontend && ng serve",
+    "frontend:build": "cd frontend && ng build --configuration production",
+    "frontend:test": "cd frontend && ng test --watch=false --browsers=ChromeHeadless",
+    "frontend:lint": "cd frontend && ng lint",
+    "infra:deploy": "cd infrastructure && sam build && sam deploy --guided",
+    "infra:package": "cd infrastructure && sam package --s3-bucket $S3_BUCKET --output-template-file packaged.yaml",
+    "local:start": "docker-compose up -d",
+    "local:stop": "docker-compose down"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}
